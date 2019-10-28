@@ -1,0 +1,8 @@
+Model name: speech_01fb7025a2_image_867e802dba_5_shot
+Log file was created on 2019-10-18 at 17:21:07.843398
+
+5-shot accuracy of 0.2015 at rnd_seed of 1 
+5-shot accuracy of 0.24175 at rnd_seed of 5 
+5-shot accuracy of 0.25 at rnd_seed of 10 
+5-shot accuracy of 0.23975 at rnd_seed of 21 
+5-shot accuracy of 0.2225 at rnd_seed of 42 

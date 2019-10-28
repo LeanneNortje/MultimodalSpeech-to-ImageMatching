@@ -1,0 +1,80 @@
+#_________________________________________________________________________________________________
+#
+# Author: Leanne Nortje
+# Year: 2019
+# Email: nortjeleanne@gmail.com
+# Some fragment of code adapted from and credit given to: R. Eloff, H. A. Engelbrecht, H. Kamper, "Multimodal One-Shot Learning of Speech and Images,"  inin Proc. ICASSP, 2019
+#_________________________________________________________________________________________________
+
+
+# ------------------------------------------------------------------------------
+# Docker image for the Kaldi Speech Recognition Toolkit (http://kaldi-asr.org).
+# ------------------------------------------------------------------------------
+# Image based on the Kaldi fork https://github.com/rpeloff/kaldi.
+# ------------------------------------------------------------------------------
+# NOTE: Specify the number of cores used to build Kaldi with N_BUILD_CORES:
+#   $ docker build --build-arg N_BUILD_CORES=12 -t reloff/kaldi:latest .
+# ------------------------------------------------------------------------------
+FROM ubuntu:16.04
+LABEL author="Ryan Eloff" date="01-10-2018"
+# ------------------------------------------------------------------------------
+# Define number of cores to use when building Kaldi (default 8)
+# ------------------------------------------------------------------------------
+ARG N_BUILD_CORES=8
+# ------------------------------------------------------------------------------
+# Install packages required to fetch and install Kaldi
+# ------------------------------------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    apt-utils \
+    git \
+    ca-certificates \
+    python2.7 \
+    python2.7-dev \
+    python3 \
+    libtool-bin \
+    g++ \
+&& ln -s /usr/bin/python2.7 /usr/bin/python \
+&& rm -rf /var/lib/apt/lists/*
+# ------------------------------------------------------------------------------
+# Clone branch 5.4 of the Kaldi official repo, forked at commit #2742
+# ------------------------------------------------------------------------------
+RUN git clone --depth 1 -b 5.4 --single-branch \
+    https://github.com/rpeloff/kaldi.git /kaldi
+# ------------------------------------------------------------------------------
+# Install additional Kaldi dependencies
+# ------------------------------------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    $(/kaldi/tools/extras/check_dependencies.sh | grep "sudo apt-get" | while read -r cmd_input; do echo ${cmd_input#"sudo apt-get install"}; done) \
+&& rm -rf /var/lib/apt/lists/*
+# ------------------------------------------------------------------------------
+# Install required tools
+# ------------------------------------------------------------------------------
+WORKDIR /kaldi/tools
+RUN make -j ${N_BUILD_CORES}
+# ------------------------------------------------------------------------------
+# Configure and install Kaldi using shared libraries
+# ------------------------------------------------------------------------------
+WORKDIR /kaldi/src
+RUN ./configure --shared \
+    && make depend -j ${N_BUILD_CORES} \
+    && make -j ${N_BUILD_CORES}
+# ------------------------------------------------------------------------------
+# Set / as default working directory and '/bin/sh -c bash' as default command
+# ------------------------------------------------------------------------------
+
+# Working directory
+WORKDIR /home
+
+# ------------------------------------------------------------------------------
+# Install pip and required python packages
+# ------------------------------------------------------------------------------
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends python-pip \
+    && python -m pip install --upgrade setuptools wheel \
+    && python -m pip install \
+        numpy==1.15.0 \
+        pillow==5.3.0 \
+        matplotlib==2.2.3 \
+        nltk==3.3.0
+
+CMD ["bash"]

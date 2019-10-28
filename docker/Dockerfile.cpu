@@ -1,0 +1,42 @@
+#_________________________________________________________________________________________________
+#
+# Author: Leanne Nortje
+# Year: 2019
+# Email: nortjeleanne@gmail.com
+#_________________________________________________________________________________________________
+#
+# This docker image uses the official tensorflow docker image for version 1.14.0 with python 3.
+#
+
+# Parent image is docker image for TensorFlow 
+FROM tensorflow/tensorflow:1.14.0-py3-jupyter
+
+# Standard tools (Python 3.6)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        less \
+        nano \
+        git \
+        unzip \
+        && \
+    python -m pip --no-cache-dir install --upgrade \
+        setuptools==40.8.0 \
+        pip==19.1.1 \
+        && \
+    python -m pip --no-cache-dir install --upgrade \
+        Keras==2.3.1 \
+        ipython==7.5.0 \
+        nose==1.3.7 \
+        jupyter==1.0.0 \
+        numpy==1.16.1 \
+        pillow==5.1.0 \
+        scikit-learn==0.20.2 \
+        scipy==1.2.1\
+        tqdm==4.32.1 \
+        matplotlib==3.0.2 \
+        cython==0.29.7
+
+# Working directory
+WORKDIR /home
+
+CMD ["bash"]

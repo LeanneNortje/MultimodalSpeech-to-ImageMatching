@@ -1,0 +1,36 @@
+
+Top-level README file for the Compressed Release of TIDIGITS
+------------------------------------------------------------
+
+This release of the TIDIGITS speech corpus comprises the full content
+of the original NIST publication of this corpus (NIST Disc numbers
+4-1.1, 4-2.1 and 4-3.1).  The speech data have been compressed for
+distribution on two cd-roms instead of the original three.
+
+Two software packages (including complete source code) have been
+included to provide the user with the tools needed to uncompress the
+speech data.  Please refer to the file tidigits/doc/compress.doc for
+information on installing and using these tools.
+
+The contents of this two-disc set are organized as follows:
+
+	Disc (vol.id)	Directories & contents
+	---------------------------------------------------
+	on both discs:	shorten -- complete source code, docs and
+			  executables for the "shorten" utility
+			sphere -- complete source code, docs and
+			  data for the sphere utilities
+			tidigits -- main corpus directory
+
+	tidigits_1:	train/man
+			train/woman
+			test/man
+			test/woman
+				speech data from adult speakers
+
+	tidigits_2:	train/boy
+			train/girl
+			test/boy
+			test/girl
+				speech data from child speakers
+
