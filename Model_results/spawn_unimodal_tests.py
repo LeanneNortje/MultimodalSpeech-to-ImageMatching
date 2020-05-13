@@ -3,12 +3,11 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
-# This script spawns the unimodal speech or image classification tasks for each fully trained 
-# in base_dir model.
+# This script copies all the final speech or image models' unimodal and multiodal few-shot tests. 
 #
 
 from datetime import datetime
@@ -25,9 +24,15 @@ import tensorflow as tf
 import subprocess
 import sys
 from tqdm import tqdm
+import shutil
+import re
 
 sys.path.append("..")
 from paths import general_lib_path
+from paths import model_lib_path
+
+sys.path.append(path.join("..", model_lib_path))
+import model_setup_library
 
 sys.path.append(path.join("..", general_lib_path))
 import util_library
@@ -36,62 +41,54 @@ old_v = tf.logging.get_verbosity()
 tf.logging.set_verbosity(tf.logging.ERROR)
 import warnings
 warnings.filterwarnings("ignore")
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
-#_____________________________________________________________________________________________________________________________________
-#
-# Argument function
-#
-#_____________________________________________________________________________________________________________________________________
-
-def arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--base_dir", type=str)
-    return parser.parse_args()
-
-#_____________________________________________________________________________________________________________________________________
-#
-# Main 
-#
-#_____________________________________________________________________________________________________________________________________
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+end_to_end_models = ["sv_cae", "sv_siamese_like"]
 
 def main():
 
-    parameters = arguments()
-
-    directories = os.walk(parameters.base_dir)
-    dir_parts = parameters.base_dir.split("/")
-
-    save_dir = path.join("./Unimodal_results", dir_parts[-4], dir_parts[-2])
-    util_library.check_dir(save_dir)
-    if dir_parts[-2] == "buckeye" or dir_parts[-2] == "TIDigits":
-        base_dir = path.join(parameters.base_dir, "mfcc/gt/")
-
-    lib_restore_list = []
-    log_save_list = []
-
+    directories = os.walk("../Model_data/")
+    keyword = " at rnd_seed of "
+    log_restore_list = []
+    log_save_dict = {}
+    model_log = []
     for root, dirs, files in directories:
-        for file in files:
-            parts = path.splitext(file)
-            if parts[-1] == ".pkl" and parts[0].split("_")[-1] == "lib": 
-                lib_restore_list.append(path.join(root, file))
-                log_save_list.append(path.join(save_dir, parts[0].split("_")[0], parts[0].split("_")[0] + "_log.txt"))
+        for filename in files:
+            if filename.split("_")[-1] == "log.txt" and root.split("/")[2] not in end_to_end_models:
+                log = path.join(root, filename)
+                log_restore_list.append(log)
 
-    counter = 6
-    for i, lib_fn in enumerate(lib_restore_list):
 
-        if os.path.isfile(log_save_list[i]) is False: counter = 1
+    for directory in log_restore_list:
 
-        if counter <= 5:        
-            cmd = "../Running_models/restore_model.py" + " --model_path {} --log_path {}".format(lib_fn, log_save_list[i])
+        dir_parts = directory.split("/")
+        save_dir = path.join("./Unimodal_results", "/".join(dir_parts[2:5] + dir_parts[-2:]))
+        util_library.check_dir(path.dirname(save_dir))
 
-            print("-"*150)
-            print("\nCommand: " + cmd)
-            print("\n" + "-"*150)
-            sys.stdout.flush()
-            proc = subprocess.Popen(cmd, shell=True)
-            proc.wait()
-            counter += 1
+        log_save_dict[directory] = save_dir
+
+    for log_fn in log_save_dict:
+
+        all_model_instances = []
+
+        if os.path.isfile(log_fn):
+            for line in open(log_fn, 'r'):
+
+                if re.search(keyword, line):
+                    line_parts = line.strip().split(" ")
+                    all_model_instances.append(":".join(line_parts[0].split(":")[0:-1]))
+
+        if os.path.isfile(log_save_dict[log_fn]) is False and len(all_model_instances) in [3, 5]: 
+            print(f'\tCopying {log_fn} to {log_save_dict[log_fn]}.\n')       
+            shutil.copyfile(log_fn, log_save_dict[log_fn])
+
+        elif os.path.isfile(log_save_dict[log_fn]) is False and len(all_model_instances) == 0:
+            print(f'\t{log_fn} had no successfully trained and tested models.\n')
+
+        elif os.path.isfile(log_save_dict[log_fn]) is False and len(all_model_instances) not in [3, 5]:
+            print(f'\tNot all instances in {log_fn} trained.\n')
+
+        elif os.path.isfile(log_save_dict[log_fn]):
+            print(f'\t{log_fn} already copied.\n')
 
 if __name__ == "__main__":
     main()

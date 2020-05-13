@@ -3,7 +3,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
@@ -89,7 +89,6 @@ def main():
 
         for i_pair, this_key in enumerate(open(args.all_keys_list_fn, 'r')):
             this_key = this_key.strip()
-            print(image_dict[key].shape, image_dict[this_key].shape)
             distances[i_pair] = cdist(image_dict[key], image_dict[this_key], dist_func)
             keys.append(this_key)
 

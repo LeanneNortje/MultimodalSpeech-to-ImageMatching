@@ -1,7 +1,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
@@ -110,6 +110,7 @@ def construct_few_shot_support_set_with_keys(sp_x=None, sp_labels=None, sp_keys=
             support_set[key]["image_keys"] = image_dict[key]["keys"]
 
     return support_set 
+
 
 #_____________________________________________________________________________________________________________________________________
 #
@@ -242,7 +243,7 @@ def label_matches_grid_generation(labels_fn, num_queries, M, K):
 
         x = int(n/(M*K))
         y = int((n-(x*M*K))%(M*K))
-        # print(n, x, y, label1, label2)
+
         label_grid[x, y] = label_test(label1, label2)
 
     return label_grid

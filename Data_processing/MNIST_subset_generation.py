@@ -3,7 +3,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
@@ -96,46 +96,6 @@ def get_dict(im_x, im_keys, im_labels):
 #_____________________________________________________________________________________________________________________________________
 
 def main():
-
-    # out_dir = path.join(".", "MNIST")
-    # util_library.check_dir(out_dir)
-    # data_dir = util_library.saving_path(path.join(data_path, "MNIST"), "MNIST")
-    # mnist = tf.keras.datasets.mnist
-    # (x_60000, y_60000), (x_test, y_test) = mnist.load_data()
-    # x_val = x_60000[55000:, :, :]
-    # y_val = y_60000[55000:]
-    # x_train = x_60000[0: 55000, :, :]
-    # y_train = y_60000[0: 55000]
-    
-    # # Training data
-    # x_train_flattened = np.empty((x_train.shape[0], x_train.shape[1]*x_train.shape[2]))
-    # for i in range(len(y_train)):
-    #     x_train_flattened[i:i+1, :] = np.reshape(x_train[i:i+1, :, :], [1, 784])
-
-    # im_x, im_keys, im_labels = generate_image_lists(x_train_flattened, y_train, path.join(out_dir, "train_set_keys.txt"))
-    # test_im_dict = get_dict(im_x, im_keys, im_labels)
-    # save_fn = path.join(out_dir, "train")
-    # speech_library.write_feats(test_im_dict, save_fn)
-
-    # #Validation data
-    # x_val_flattened = np.empty((x_val.shape[0], x_val.shape[1]*x_val.shape[2]))
-    # for i in range(len(y_val)):
-    #     x_val_flattened[i:i+1, :] = np.reshape(x_val[i:i+1, :, :], [1, 784])
-
-    # im_x, im_keys, im_labels = generate_image_lists(x_val_flattened, y_val, path.join(out_dir, "validation_set_keys.txt"))
-    # test_im_dict = get_dict(im_x, im_keys, im_labels)
-    # save_fn = path.join(out_dir, "validation")
-    # speech_library.write_feats(test_im_dict, save_fn)
-
-    # # Testing data
-    # x_test_flattened = np.empty((x_test.shape[0], x_test.shape[1]*x_test.shape[2]))
-    # for i in range(len(y_test)):
-    #     x_test_flattened[i:i+1, :] = np.reshape(x_test[i, :, :], [1, 784])
-
-    # im_x, im_keys, im_labels = generate_image_lists(x_test_flattened, y_test, path.join(out_dir, "test_set_keys.txt"))
-    # test_im_dict = get_dict(im_x, im_keys, im_labels)
-    # save_fn = path.join(out_dir, "test")
-    # speech_library.write_feats(test_im_dict, save_fn)
 
     out_dir = path.join(".", "MNIST")
     util_library.check_dir(out_dir)

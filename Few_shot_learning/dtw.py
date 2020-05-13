@@ -3,7 +3,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 # Some fragment of code adapted from and credit given to: Herman Kamper
 #_________________________________________________________________________________________________

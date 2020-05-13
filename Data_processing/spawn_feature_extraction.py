@@ -3,7 +3,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
@@ -26,9 +26,16 @@ import sys
 from tqdm import tqdm
 import timeit
 
+sys.path.append("..")
+from paths import model_lib_path
+sys.path.append(path.join("..", model_lib_path))
+import model_setup_library
+
 import warnings
 warnings.filterwarnings("ignore")
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+PRINT_LENGTH = model_setup_library.PRINT_LENGTH
 
 #_____________________________________________________________________________________________________________________________________
 #
@@ -50,7 +57,7 @@ def main():
         cmd = "./feature_extraction.py " + this_command
         print("-"*150)
         print("\nCommand: " + cmd)
-        print("\n" + "-"*150)
+        print("\n" + "-"*PRINT_LENGTH)
         sys.stdout.flush()
         proc = subprocess.Popen(cmd, shell=True)
         proc.wait()

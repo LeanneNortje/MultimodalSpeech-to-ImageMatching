@@ -3,7 +3,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 # Some fragment of code adapted from and credit given to: Herman Kamper
 #_________________________________________________________________________________________________
@@ -39,8 +39,6 @@ def check_argv():
 
 def main():
     args = check_argv()
-
-    print(args.feats_fn)
 
     path_parts = args.feats_fn.strip().split("/")
     if len(path_parts) >= 5: dataset = path_parts[-5]

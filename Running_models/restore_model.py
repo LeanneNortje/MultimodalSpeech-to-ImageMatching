@@ -3,11 +3,11 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
-# This script restores a model when given the path to its library. 
+# This script calculates restores speech or image models.  
 #
 
 from datetime import datetime
@@ -40,13 +40,19 @@ import model_setup_library
 sys.path.append(path.join("..", general_lib_path))
 import util_library
 
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+old_v = tf.logging.get_verbosity()
+tf.logging.set_verbosity(tf.logging.ERROR)
+import warnings
+warnings.filterwarnings("ignore")
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 
 #_____________________________________________________________________________________________________________________________________
 #
 # Main
 #
 #_____________________________________________________________________________________________________________________________________
+
 
 def main():
 
@@ -59,17 +65,19 @@ def main():
         if lib["model_type"] == "classifier":
             if lib["architecture"] == "rnn": speech_model_library.rnn_speech_classifier(lib)
         elif lib["model_type"] == "siamese":
-            if lib["architecture"] == "rnn": speech_model_library.rnn_speech_siamese(lib)
+            if lib["architecture"] == "rnn": speech_model_library.rnn_speech_siamese_model(lib)
         else:
-            if lib["architecture"] == "rnn": speech_model_library.rnn_speech_encdec(lib)
-
+            if lib["architecture"] == "rnn": speech_model_library.rnn_speech_model(lib)
+            elif lib["architecture"] == "cnn": speech_model_library.cnn_speech_model(lib)
+            elif lib["architecture"] == "fc": speech_model_library.fc_speech_model(lib)
     elif lib["training_on"] == "images": 
         if lib["model_type"] == "classifier":
             if lib["architecture"] == "fc": vision_model_library.fc_vision_classifier(lib)
         elif lib["model_type"] == "siamese":
-            if lib["architecture"] == "fc": vision_model_library.fc_vision_siamese(lib)
+            if lib["architecture"] == "fc": vision_model_library.fc_vision_siamese_model(lib)
         else:
-            if lib["architecture"] == "fc": vision_model_library.fc_vision_encdec(lib)
+            if lib["architecture"] == "cnn": vision_model_library.cnn_vision_model(lib)
+            elif lib["architecture"] == "fc": vision_model_library.fc_vision_model(lib)
 
 if __name__ == "__main__":
     main()

@@ -3,11 +3,12 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
-#
+# This script does the unimodal few-shot classification task for a baseline using distance metrics 
+# on raw data. 
 #
 
 from __future__ import division
@@ -74,7 +75,7 @@ def main():
         print("Warning: Distances contain nan") 
 
     num_queries = int(len(distances_vec)/(M*K))
-    print(num_queries, M, K)
+
     num_episodes_check = int(sum([1 for line in open(args.labels_fn)])/(M*K))
     if num_queries != num_episodes_check: 
         print("Oops, file lengths don't match")

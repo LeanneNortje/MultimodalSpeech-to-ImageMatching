@@ -3,7 +3,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 # Some fragment of code adapted from and credit given to: Herman Kamper
 #_________________________________________________________________________________________________
@@ -28,7 +28,6 @@ import math
 
 
 def check_argv():
-    """Check the command line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument("keys_fn", type=str)
     parser.add_argument("output_dir", type=str)

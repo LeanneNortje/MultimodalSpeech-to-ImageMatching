@@ -3,7 +3,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
@@ -96,8 +96,13 @@ def library_setup():
     model_lib["K"] = parameters.K
     model_lib["Q"] = parameters.Q
 
+    if model_lib["subset"] == "val": 
+    	subset = "validation.npz"
+    else: 
+    	subset = model_lib["subset"] + ".npz" 
+
     model_lib["data_dir"] = path.join(
-    	feats_path, model_lib["data_type"], model_lib["subset"] + ".npz" if (model_lib["data_type"] != "omniglot" and model_lib["subset"] != "val") else "test.npz"
+    	feats_path, model_lib["data_type"], subset
     	)
 
     model_lib["image_input_dim"] = 28*28

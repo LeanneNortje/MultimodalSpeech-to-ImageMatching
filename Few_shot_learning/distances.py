@@ -3,7 +3,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
@@ -41,7 +41,6 @@ import util_library
 #_____________________________________________________________________________________________________________________________________
 
 def check_argv():
-    """Check the command line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--pairs_fn", type=str)
     parser.add_argument("--feats_fn", type=str)

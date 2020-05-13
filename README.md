@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository includes the code used to implement the experiments in the paper: UNSUPERVISED VS TRANSFER LEARNING FOR MULTIMODAL ONE-SHOT MATCHING OF SPEECH AND IMAGES written for sunmission at ICASSP 2020. Unsupervised approaches are compared to transfer learning from background data. These two approaches are used to learn features used in a multimodal speech-image matching task. 
+This repository includes the code used to implement the experiments in the paper: UNSUPERVISED VS TRANSFER LEARNING FOR MULTIMODAL ONE-SHOT MATCHING OF SPEECH AND IMAGES. Unsupervised approaches are compared to transfer learning from background labelled data. These two approaches are used to learn features used in a multimodal speech-image matching task. 
 
 ## Disclaimer
 
@@ -98,11 +98,11 @@ cd ../../
 
 **Buckeye**
 
-Download the [Buckeye](https://buckeyecorpus.osu.edu/) corpus. Copy the folders s01-s40 into the `Datasets/buckeye/` folder. We divide the buckeye corpus into subsets for training according to the speakers listed in `devpart1`, for validation according to the speakers listed in `devpart2` and testing according to the speakers listed in `zs`. We use `english.wrd` to isolate each spoken word. 
+Download the [Buckeye](https://buckeyecorpus.osu.edu/) corpus. Copy the folders s01-s40 into the `Datasets/buckeye/` folder. We use `english.wrd` to isolate each spoken word in te corpus. 
 
 **TIDigits**
 
-Download the [TIDigits](https://catalog.ldc.upenn.edu/LDC93S10) corpus. Copy the data and ensure the `tidigits` folder in the downloaded folder is in `Datasets/TIDigits/`. We divide the TIDigits corpus into subsets for training , validation according to the speakers listed in `devpart2` and testing. We use `words.wrd` to isolate each spoken word. 
+Download the [TIDigits](https://catalog.ldc.upenn.edu/LDC93S10) corpus. Copy the data and ensure the `tidigits` folder in the downloaded folder is in `Datasets/TIDigits/`. We divide the TIDigits corpus into subsets for training , validation  and testing according to the speakers listed in `train_speakers.list`, `val_speakers.list` and `test_speakers.list` respectively. We use `words.wrd` to isolate each spoken word in the corpus. 
 
 
 **MNIST**
@@ -121,11 +121,7 @@ cd ../../
 
 ## Data processing
 
-To process the data, follow the steps in [data_processing.md](Data_processing/data_processing.md). 
-
-## Data pairs
-
-All the necessary pair files are already generated since it takes very long. The files are in the cloned repository. If neccessary the steps required to generate the pairs are in [data_pairs.md](Data_pairs/data_pairs.md) 
+To process the data, follow the steps in [data_processing.md](Data_processing/data_processing.md).
 
 ## Episode generation
 
@@ -136,22 +132,34 @@ cd Few_shot_learning/
 ./generate_all_episodes.sh
 cd ../
 ```
+ 
+## Data pairs
+
+All the necessary pair files are already generated since it takes very long. The files are in the cloned repository. If neccessary the steps required to generate the pairs are in [data_pairs.md](Data_pairs/data_pairs.md) 
+
 ## Baseline tests
 
 To run the baseline tests, follow the steps set out in [baseline.md](Few_shot_learning/baseline.md).
 
 ## Training models
 
-To use the `./train.py` script to train any model, follow these [instructions](Running_models/training_parameters.md). 
-
-To spawn all the models we implemented in series, run:
+To spawn all the models, except the classifier and Siamese models, we implemented in series, run:
 
 ```
 cd Running_models/
-./spawn_models.py --test_seeds <"True", "False">
+./spawn_models.py --test_seeds <True, False>
 cd ../
 ```
-All the exact parameter values neccessary to duplicate our models are already set in `./spawn_models.py`. 
+
+To spawn the classifier and Siamese models we implemented in series, and you haven't done so in [Data pairs](#Data-pairs) to generate new data pairs (and not use the provided), run:
+
+```
+cd Running_models/
+./spawn_siamese_or_classifier_pairs.py --test_seeds <True, False>
+cd ../
+```
+
+Instead of using `./spawn_models.py`, you can use `./train.py` to train a single model. To use the `./train.py` script follow these [instructions](Running_models/training_parameters.md).  
 
 ## Unimodal K-shot tests
 
@@ -159,24 +167,13 @@ To do the unimodal classification task for each model ran and saved in `Model_da
 
 ```
 cd Model_results/
-./spawn_unimodal_tests.py --base_dir ../Model_data/ae/fc/omniglot/
-./spawn_unimodal_tests.py --base_dir ../Model_data/ae/fc/MNIST/
-./spawn_unimodal_tests.py --base_dir ../Model_data/ae/rnn/buckeye/
-./spawn_unimodal_tests.py --base_dir ../Model_data/ae/rnn/TIDigits/
-./spawn_unimodal_tests.py --base_dir ../Model_data/cae/fc/omniglot/
-./spawn_unimodal_tests.py --base_dir ../Model_data/cae/fc/MNIST/
-./spawn_unimodal_tests.py --base_dir ../Model_data/cae/rnn/buckeye/
-./spawn_unimodal_tests.py --base_dir ../Model_data/cae/rnn/TIDigits/
-./spawn_unimodal_tests.py --base_dir ../Model_data/classifier/fc/omniglot/
-./spawn_unimodal_tests.py --base_dir ../Model_data/classifier/rnn/buckeye/
-./spawn_unimodal_tests.py --base_dir ../Model_data/siamese/fc/omniglot/
-./spawn_unimodal_tests.py --base_dir ../Model_data/siamese/rnn/buckeye/
+./spawn_unimodal_tests.py
 ```
 
 This stores a log file in `/home/Model_results/Unimodal_results/` with all the unimodal classification accuracy results of a particular models' various trained instances. To get the overall models' accuracy mean and variance, run:
 
 ```
-./get_result.py --log_fn <path to log file in /home/Model_results/Unimodal_results/> --one_not_few_shot <"True", "False">
+./get_mean_and_std_of_result.py
 cd ../
 ```
 
@@ -191,12 +188,18 @@ cd Few_shot_learning/
 cd ../
 ```
 
-This stores a log file in `/home/Model_results/Multimodal_results/` with all the multimodal speech-image matching accuracy results of a particular speech-vision model pairs' various paired trained instances. To get the overall paired models' accuracy mean and variance, run:
+This stores a log file in `/home/Model_results/Multimodal_results/` with all the multimodal speech-image matching accuracy results of a particular speech-vision model pairs' various paired trained instances. Take note that the datasets given in `--speech_data_fn` and `--image_data_fn` should match to the datasets used to generate the episodes in `--episode_fn`. And `--k` in `./get_restult.py` should match to the `K`-shot episodes of `--episode_fn`. To do this for all the trained model pairs, simply run: 
 
 ```
-cd Model_results/
-./get_result.py --log_fn <path to log file in /home/Model_results/Multimodal_results/> --k <int value indicating k-shot task>
+cd Few_shot_learning/
+./spawn_task.py
 cd ../
 ```
 
-Take note that the datasets given in `--speech_data_fn` and `--image_data_fn` should match to the datasets used to generate the episodes in `--episode_fn`. And `--k` in `./get_restult.py` should match to the `K`-shot episodes of `--episode_fn`. 
+To get the overall paired models' accuracy mean and variance, run:
+
+```
+cd Model_results/
+./get_mean_and_std_of_result.py
+cd ../
+```

@@ -3,7 +3,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
@@ -39,14 +39,6 @@ pair_dir=$dataset/$feats_name
 key_pairs_dir=$pair_dir/key_pair_lists
 key_pair_file=$pair_dir/key_pairs.list
 
-echo $pair_dir
-echo $key_pairs_dir
-echo $key_pair_file
-
-# if [ -f $key_pair_file ]; then
-# 	echo $key_pair_file
-# 	rm -r $key_pair_file
-# fi
 
 completed_jobs=`ls $key_pairs_dir/key_pairs.*.log | xargs grep "End time" | wc -l`
 echo "Number of spawned jobs done: $completed_jobs out of $NUM_CORES"

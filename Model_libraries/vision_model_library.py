@@ -1,12 +1,11 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
-# Some fragment of code adapted from and credit given to: 
 #_________________________________________________________________________________________________
 #
-# This sript contains and encoder-decoder, classifier and Siamese models using FFNN's for imaes.
+# This script trains and tests the different image models.
 #
 
 from datetime import datetime
@@ -36,6 +35,8 @@ import training_library
 
 sys.path.append("..")
 from paths import data_lib_path
+from paths import evaluation_lib_path
+from paths import samediff_evaluation_lib_path
 from paths import general_lib_path
 from paths import data_path
 from paths import few_shot_lib_path
@@ -48,18 +49,14 @@ sys.path.append(path.join("..", data_lib_path))
 import data_library
 import batching_library
 
-
 sys.path.append(path.join("..", few_shot_lib_path))
 import few_shot_learning_library
 import generate_unimodal_image_episodes
 
-#_____________________________________________________________________________________________________________________________________
-#
-# Encoder-decoder (AE and CAE) FFNN model 
-#
-#_____________________________________________________________________________________________________________________________________
+PRINT_LENGTH = model_setup_library.PRINT_LENGTH
+COL_LENGTH =  PRINT_LENGTH - len("\t".expandtabs())
 
-def fc_vision_encdec(lib):
+def cnn_vision_siamese_model(lib):
 
     #______________________________________________________________________________________________
     # Model setup
@@ -74,47 +71,110 @@ def fc_vision_encdec(lib):
     tf.reset_default_graph()
     print("\n" + "-"*150)
 
+    model_setup_library.lib_print(lib)
+
     #______________________________________________________________________________________________
     # Data processing
     #______________________________________________________________________________________________
 
-    print("\nModel parameters:")
-    model_setup_library.lib_print(lib)
+    if lib["train_model"]:
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Processing training data")
+        print("-"*PRINT_LENGTH)
 
-    train_x, train_labels, train_keys = (
-        data_library.load_image_data_from_npz(lib["train_data_dir"])
-        )
-    val_x, val_labels, val_keys = (
-        data_library.load_image_data_from_npz(lib["val_data_dir"])
-        )
+        train_x, train_labels, train_keys = (
+            data_library.load_image_data_from_npz(lib["train_data_dir"])
+            )
+
+        if lib["pretrain"]:
+            if lib["pretrain_train_data_dir"] == lib["train_data_dir"]:
+                pretrain_train_x = train_x
+                pretrain_train_labels = train_labels
+                pretrain_train_keys = train_keys
+            else:
+                pretrain_train_x, pretrain_train_labels, pretrain_train_keys = (
+                    data_library.load_image_data_from_npz(lib["pretrain_train_data_dir"])
+                    )
+
+        if (lib["mix_training_datasets"] and (lib["data_type"] != lib["other_image_dataset"])):
+            if (lib["other_train_data_dir"] == (lib["pretrain_train_data_dir"] and lib["pretrain"])):
+                other_train_x = pretrain_train_x
+                other_train_labels = pretrain_train_labels
+                other_train_keys = pretrain_train_keys
+            else:
+                other_train_x, other_train_labels, other_train_keys = (
+                    data_library.load_image_data_from_npz(lib["other_train_data_dir"])
+                    )
+
+            if (lib["pretrain"] and (lib["pretraining_data"] != lib["other_pretraining_image_dataset"])):
+                if lib["other_pretrain_train_data_dir"] == lib["train_data_dir"]:
+                    other_pretrain_train_x = train_x
+                    other_pretrain_train_labels = train_labels
+                    other_pretrain_train_keys = train_keys
+                elif lib["other_pretrain_train_data_dir"] == lib["other_train_data_dir"]:
+                    other_pretrain_train_x = other_train_x
+                    other_pretrain_train_labels = other_train_labels
+                    other_pretrain_train_keys = other_train_keys
+                else:
+                    other_pretrain_train_x, other_pretrain_train_labels, other_pretrain_train_keys = (
+                        data_library.load_image_data_from_npz(lib["other_pretrain_train_data_dir"])
+                        )
+
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Processing validation data processing")
+        print("-"*PRINT_LENGTH)
+        val_x, val_labels, val_keys = (
+            data_library.load_image_data_from_npz(lib["val_data_dir"])
+            )
+        train_labels_set = list(set(train_labels))
+        label_ids = {}
+        for label_id, label in enumerate(sorted(train_labels_set)):
+            label_ids[label] = label_id
+        train_label_ids = []
+        for label in train_labels:
+            train_label_ids.append(label_ids[label])
+
+        lib["num_classes"] = len(train_labels_set)
+
+    print("\n" + "-"*PRINT_LENGTH)
+    print("Processing testing data processing")
+    print("-"*PRINT_LENGTH)
     test_x, test_labels, test_keys = (
         data_library.load_image_data_from_npz(lib["test_data_dir"])
         )
-  
-    print("\n" + "-"*150)
+
+    if lib["train_model"] is False:
+        val_x = test_x
+        val_labels = test_labels
+        val_keys = test_keys
+
+    root_dir = '../Few_shot_learning/Episode_files'
+    save_dir = '../Model_data_non_final/Model_checkpoints/'
 
     #______________________________________________________________________________________________
     #Building model
     #______________________________________________________________________________________________
 
-    print("FFNN structure:")
-     
-    X = tf.placeholder(tf.float32, [None, lib["input_dim"]])
-    target = tf.placeholder(tf.float32, [None, lib["input_dim"]])
+    print("\n" + "-"*PRINT_LENGTH)
+    print("CNN structure setup")
+    print("-"*PRINT_LENGTH)
 
-    model = model_legos_library.fc_architecture(
-        [X], lib["enc"], lib["latent"], lib["dec"], lib, model_setup_library.activation_lib(), 0
+    X = tf.placeholder(tf.float32, [None, 28, 28, 1])
+    target =  tf.placeholder(tf.float32, [None])
+    train_flag = tf.placeholder_with_default(False, shape=())
+
+    model = model_legos_library.siamese_cnn_architecture(
+        X, train_flag, lib["enc"], lib["enc_strides"], model_setup_library.pooling_lib(), lib["pool_layers"], lib["latent"], 
+        lib, model_setup_library.activation_lib(), print_layer=True
         )
-    
-    output = model["output"]
-    latent = model["latent"]
 
-    output = tf.nn.sigmoid(output) # ensure values are between 0 and 1 to compare to target image
-    loss = tf.reduce_mean(tf.pow(target - output, 2))
+    latent = tf.nn.l2_normalize(model["output"], axis=1)
+    output = latent
 
+    loss = tf.contrib.losses.metric_learning.triplet_semihard_loss(
+        labels=target, embeddings=output, margin=lib["margin"]
+        )
     optimization = tf.train.AdamOptimizer(lib["learning_rate"]).minimize(loss)
-
-    print("\n" + "-"*150)
 
     #_____________________________________________________________________________________________________________________________________
     # One-shot evaluation
@@ -126,7 +186,6 @@ def fc_vision_encdec(lib):
         correct = 0
         total = 0
 
-        # np.random.seed(lib["rnd_seed"])
         episode_numbers = np.arange(1, len(episode_dict)+1)
         np.random.shuffle(episode_numbers)
 
@@ -141,7 +200,7 @@ def fc_vision_encdec(lib):
                 query_data, query_keys, query_lab = generate_unimodal_image_episodes.episode_data(
                     query["keys"], data_x, data_keys, data_labels
                     )
-                query_iterator = batching_library.image_iterator(
+                query_iterator = batching_library.unflattened_image_iterator(
                     query_data, len(query_data), shuffle_batches_every_epoch=False
                     )
                 query_labels = [query_lab[i] for i in query_iterator.indices]
@@ -150,7 +209,7 @@ def fc_vision_encdec(lib):
                 S_data, S_keys, S_lab = generate_unimodal_image_episodes.episode_data(
                     support_set["keys"], data_x, data_keys, data_labels
                     )
-                S_iterator = batching_library.image_iterator(
+                S_iterator = batching_library.unflattened_image_iterator(
                     S_data, len(S_data), shuffle_batches_every_epoch=False
                     )
                 S_labels = [S_lab[i] for i in S_iterator.indices]
@@ -188,143 +247,106 @@ def fc_vision_encdec(lib):
                         correct += 1
 
         return [-correct/total]
-
-
+        
     if lib["train_model"]:
-        #______________________________________________________________________________________________
-        # Pre-training
-        #______________________________________________________________________________________________
-        if lib["pretrain"]:
-            if lib["pretraining_model"] == "cae": 
-                
-                if lib["data_type"] == "MNIST": pair_list = data_library.data_pairs_from_file(lib["train_pair_file"], train_keys)
-                else: pair_list = data_library.all_data_pairs(train_labels)
-
-                if lib["validate_on_validation_dataset"] and lib["validation_image_dataset"] == "omniglot": val_pair_list = data_library.all_data_pairs(val_labels)
-                elif lib["data_type"] == "omniglot": val_pair_list = data_library.all_data_pairs(val_labels)
-                else: val_pair_list = data_library.data_pairs_from_file(lib["val_pair_file"], val_keys)
-                    
-            elif lib["pretraining_model"] == "ae": 
-                pair_list = [(i, i) for i in range(len(train_x))]
-                val_pair_list = [(i, i) for i in range(len(val_x))]
-                
-
-            train_batch_iterator = batching_library.pair_image_iterator(
-                train_x, pair_list, batch_size,  
-                lib["shuffle_batches_every_epoch"]
-                )
-
-            model_fn = lib["intermediate_pretrain_model_fn"]
-
-            if lib["use_one_shot_as_val_for_pretraining"]:
-                val_it = None
-                validation_tensor = one_shot_validation
-            else:
-                val_it = batching_library.pair_image_iterator(
-                    val_x, val_pair_list, batch_size, lib["shuffle_batches_every_epoch"]
-                    )
-                validation_tensor = None
-            
-            pretrain_record, pretrain_log = training_library.training_model(
-                [loss, optimization], [X, target], lib, train_batch_iterator, 
-                lib["pretraining_epochs"], lib["pretraining_model"], val_it, validation_tensor, restore_fn=None, 
-                save_model_fn=lib["intermediate_pretrain_model_fn"], 
-                save_best_model_fn=lib["best_pretrain_model_fn"]
-                )
-
-            print("\n" + "-"*150)
 
         #______________________________________________________________________________________________
-        #Training
+        # Training
         #______________________________________________________________________________________________
-        # if lib["train_model"]:
-        if lib["model_type"] == "cae":
 
-            if lib["data_type"] == "MNIST": pair_list = data_library.data_pairs_from_file(lib["train_pair_file"], train_keys)
-            else: pair_list = data_library.data_pairs(train_labels)
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Training model")
+        print("-"*PRINT_LENGTH)
 
-            if lib["validate_on_validation_dataset"] and lib["validation_image_dataset"] == "omniglot": val_pair_list = data_library.all_data_pairs(val_labels)
-            elif lib["data_type"] == "omniglot": val_pair_list = data_library.all_data_pairs(val_labels)
-            else: val_pair_list = data_library.data_pairs_from_file(lib["val_pair_file"], val_keys)
+        num_pairs_per_batch = lib["sample_k_examples"]
+        train_x_filtered = []
+        labels_set = list(set(train_labels))
+        label_count = {}
 
-        elif lib["model_type"] == "ae": 
-            pair_list = [(i, i) for i in range(len(train_x))]
-            val_pair_list = [(i, i) for i in range(len(val_x))]
+        for label in train_labels:  
+            id = label_ids[label]  
+            if id not in label_count: label_count[id] = 0
+            label_count[id] += 1
 
-        train_batch_iterator = batching_library.pair_image_iterator(
-            train_x, pair_list, batch_size,  
-            lib["shuffle_batches_every_epoch"]
-            )
+        train_label_ids = []
+        for i_entry, label in enumerate(train_labels):
+            id = label_ids[label]
+            if label_count[id] >= num_pairs_per_batch:
+              train_label_ids.append(int(label_ids[label]))
+              train_x_filtered.append(train_x[i_entry])
 
         model_fn = lib["intermediate_model_fn"]
 
-        if lib["use_one_shot_as_val"]:
-            val_it = None
-            validation_tensor = one_shot_validation
-        else:
-            val_it = batching_library.pair_image_iterator(
-                val_x, val_pair_list, batch_size, lib["shuffle_batches_every_epoch"]
-                )
-            validation_tensor = None
-        
+        val_it = None
+        validation_tensor = one_shot_validation
+
+        train_batch_iterator = batching_library.siamese_image_iterator_with_one_dimensional_labels(
+            train_x_filtered, train_label_ids, lib["sample_n_classes"], lib["sample_k_examples"], 
+            lib["n_siamese_batches"], shuffle_batches_every_epoch=True, return_labels=True
+            )
+
         record, train_log = training_library.training_model(
-            [loss, optimization], [X, target], lib, train_batch_iterator, 
-            lib["epochs"], lib["model_type"], val_it, validation_tensor, 
-            restore_fn=lib["best_pretrain_model_fn"] if lib["pretrain"] else None, 
+            [loss, optimization, train_flag], [X, target], lib, train_batch_iterator,
+            lib["epochs"], lib["patience"], lib["min_number_epochs"], lib["model_type"], val_it, validation_tensor,
+            restore_fn=lib["best_pretrain_model_fn"] if lib["pretrain"] else None,
             save_model_fn=lib["intermediate_model_fn"], save_best_model_fn=lib["best_model_fn"]
             )
 
-        print("\n" + "-"*150)
+        model_fn = model_setup_library.get_model_fn(lib)
 
-    model_fn = model_setup_library.get_model_fn(lib)
-    results = []
     if lib["test_model"]:
-    #______________________________________________________________________________________________
-    #Final accuracy calculation
-    #______________________________________________________________________________________________
-        #log = "\n{}: ".format(lib["model_instance"])
+        #______________________________________________________________________________________________
+        #Final accuracy calculation
+        #______________________________________________________________________________________________
+
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Testing model")
+        print("-"*PRINT_LENGTH)
         log = ""
+        k = lib["K"]
+
         if lib["do_one_shot_test"]:
 
             acc = one_shot_validation(lib["one_shot_testing_episode_list"], test_x, test_keys, test_labels, normalize=True)
             acc = -acc[0]
-            print("Accuracy of one-shot task: {}".format(acc))
-            print("Accuracy of one-shot task: {}%".format(acc*100))
+
+            print(f'\tAccuracy of {1}-shot task: {acc*100:.2f}%')
             results_fn = path.join(lib["output_fn"], lib["model_name"]) + "_one_shot_learning_results.txt"
-            print("Writing: {}".format(results_fn))
+            print("\tWriting: {}".format(results_fn))
             with open(results_fn, "w") as write_results:
                 write_results.write(
-                    "Accuracy of one shot-ask: {}\n".format(acc)
+                    f'Accuracy of {1}-shot task: {acc}\n'
                     )
                 write_results.write(
-                    "Accuracy of one shot-task: {}%\n".format(acc*100)
+                    f'Accuracy of {1}-shot task: {acc*100:.2f}\n'
                     )
                 write_results.close()
-            print("\n" + "-"*150)
 
             log += "One-shot accuracy of {} at rnd_seed of {} ".format(acc, lib["rnd_seed"])
-            results.append(acc)
+            print("\n")
 
         if lib["do_few_shot_test"]:
             
             acc = one_shot_validation(lib["testing_episode_list"], test_x, test_keys, test_labels, normalize=True)
             acc = -acc[0]
-            print("Accuracy of {}-shot task: {}".format(lib["K"], acc))
-            print("Accuracy of {}-shot task: {}%".format(lib["K"], acc*100))
+
+            print(f'\tAccuracy of {k}-shot task: {acc*100:.2f}%')
             results_fn = path.join(lib["output_fn"], lib["model_name"]) + "_one_shot_learning_results.txt"
-            print("Writing: {}".format(results_fn))
+            print("\tWriting: {}".format(results_fn))
             with open(results_fn, "w") as write_results:
                 write_results.write(
-                    "Accuracy of {} shot task: {}\n".format(lib["K"], acc)
+                    f'Accuracy of {k}-shot task: {acc}\n'
                     )
                 write_results.write(
-                    "Accuracy of {}-shot task: {}%\n".format(lib["K"], acc*100)
+                    f'Accuracy of {k}-shot task: {acc*100:.2f}%\n'
                     )
                 write_results.close()
-            print("\n" + "-"*150)
 
             log += "{}-shot accuracy of {} at rnd_seed of {} ".format(lib["K"], acc, lib["rnd_seed"])
-            results.append(acc)
+
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Saving model library and writing logs")
+        print("-"*PRINT_LENGTH)
 
     if lib["train_model"]:
         #______________________________________________________________________________________________
@@ -345,29 +367,20 @@ def fc_vision_encdec(lib):
         #______________________________________________________________________________________________
         
         results_fn = path.join(lib["output_fn"], lib["model_instance"]) + ".txt"
-        print("Writing: {}".format(results_fn))
+        print("\tWriting: {}".format(results_fn))
         with open(results_fn, "w") as write_results:
             if lib["pretrain"]: write_results.write(pretrain_log)
             write_results.write(train_log)
             write_results.write(log)
             write_results.close()
-        print("\n" + "-"*150)
 
-
-    print("Writing: {}".format(lib["model_log"]))
+    print("\tWriting: {}".format(lib["model_log"]))
     with open(lib["model_log"], "a") as write_results:
         write_results.write("\n{}: ".format(lib["model_instance"]) + log)
-    print("\n" + "-"*150)
 
-    model_setup_library.directory_management(lib["model_log"])
+    model_setup_library.directory_management()
 
-#_____________________________________________________________________________________________________________________________________
-#
-# Classifier FFNN model
-#
-#_____________________________________________________________________________________________________________________________________
-
-def fc_vision_classifier(lib):
+def cnn_vision_classifier_model(lib):
 
     #______________________________________________________________________________________________
     # Model setup
@@ -382,60 +395,111 @@ def fc_vision_classifier(lib):
     tf.reset_default_graph()
     print("\n" + "-"*150)
 
+    model_setup_library.lib_print(lib)
+
+
     #______________________________________________________________________________________________
     # Data processing
     #______________________________________________________________________________________________
 
-    print("\nModel parameters:")
-    model_setup_library.lib_print(lib)
+    if lib["train_model"]:
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Processing training data")
+        print("-"*PRINT_LENGTH)
 
-    train_x, train_labels, train_keys = (
-        data_library.load_image_data_from_npz(lib["train_data_dir"])
-        )
-    val_x, val_labels, val_keys = (
-        data_library.load_image_data_from_npz(lib["val_data_dir"])
-        )
+        train_x, train_labels, train_keys = (
+            data_library.load_image_data_from_npz(lib["train_data_dir"])
+            )
+
+        if lib["pretrain"]:
+            if lib["pretrain_train_data_dir"] == lib["train_data_dir"]:
+                pretrain_train_x = train_x
+                pretrain_train_labels = train_labels
+                pretrain_train_keys = train_keys
+            else:
+                pretrain_train_x, pretrain_train_labels, pretrain_train_keys = (
+                    data_library.load_image_data_from_npz(lib["pretrain_train_data_dir"])
+                    )
+
+        if (lib["mix_training_datasets"] and (lib["data_type"] != lib["other_image_dataset"])):
+            if (lib["other_train_data_dir"] == (lib["pretrain_train_data_dir"] and lib["pretrain"])):
+                other_train_x = pretrain_train_x
+                other_train_labels = pretrain_train_labels
+                other_train_keys = pretrain_train_keys
+            else:
+                other_train_x, other_train_labels, other_train_keys = (
+                    data_library.load_image_data_from_npz(lib["other_train_data_dir"])
+                    )
+
+            if (lib["pretrain"] and (lib["pretraining_data"] != lib["other_pretraining_image_dataset"])):
+                if lib["other_pretrain_train_data_dir"] == lib["train_data_dir"]:
+                    other_pretrain_train_x = train_x
+                    other_pretrain_train_labels = train_labels
+                    other_pretrain_train_keys = train_keys
+                elif lib["other_pretrain_train_data_dir"] == lib["other_train_data_dir"]:
+                    other_pretrain_train_x = other_train_x
+                    other_pretrain_train_labels = other_train_labels
+                    other_pretrain_train_keys = other_train_keys
+                else:
+                    other_pretrain_train_x, other_pretrain_train_labels, other_pretrain_train_keys = (
+                        data_library.load_image_data_from_npz(lib["other_pretrain_train_data_dir"])
+                        )
+
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Processing validation data processing")
+        print("-"*PRINT_LENGTH)
+        val_x, val_labels, val_keys = (
+            data_library.load_image_data_from_npz(lib["val_data_dir"])
+            )
+        train_labels_set = list(set(train_labels))
+        label_ids = {}
+        for label_id, label in enumerate(sorted(train_labels_set)):
+            label_ids[label] = label_id
+        train_label_ids = []
+        for label in train_labels:
+            train_label_ids.append(label_ids[label])
+
+        lib["num_classes"] = len(train_labels_set)
+
+    print("\n" + "-"*PRINT_LENGTH)
+    print("Processing testing data processing")
+    print("-"*PRINT_LENGTH)
     test_x, test_labels, test_keys = (
         data_library.load_image_data_from_npz(lib["test_data_dir"])
         )
 
-    # Convert labels to integer numbers for training
-    train_labels_set = list(set(train_labels))
-    label_ids = {}
-    for label_id, label in enumerate(sorted(train_labels_set)):
-        label_ids[label] = label_id
-    train_label_ids = []
-    for label in train_labels:
-        train_label_ids.append(label_ids[label])
+    if lib["train_model"] is False:
+        val_x = test_x
+        val_labels = test_labels
+        val_keys = test_keys
 
-    lib["num_classes"] = len(train_labels_set)
-
-    print("\n" + "-"*150)
+    root_dir = '../Few_shot_learning/Episode_files'
+    save_dir = '../Model_data_non_final/Model_checkpoints/'
 
     #______________________________________________________________________________________________
     #Building model
     #______________________________________________________________________________________________
 
-    print("FFNN structure:")
-     
-    X = tf.placeholder(tf.float32, [None, lib["input_dim"]])
-    target = tf.placeholder(tf.int32, [None, lib["num_classes"]])
-    training_placeholders = [X, target]
+    print("\n" + "-"*PRINT_LENGTH)
+    print("CNN structure setup")
+    print("-"*PRINT_LENGTH)
 
-    model = model_legos_library.fc_classifier_architecture(
-        [X], lib["enc"], lib["latent"], lib, model_setup_library.activation_lib()
+    X = tf.placeholder(tf.float32, [None, 28, 28, 1])
+    target =  tf.placeholder(tf.float32, [None, lib["num_classes"]])
+    train_flag = tf.placeholder_with_default(False, shape=())
+
+    model = model_legos_library.cnn_classifier_architecture(
+        X, train_flag, lib["enc"], lib["enc_strides"], model_setup_library.pooling_lib(), lib["pool_layers"], lib["latent"], 
+        lib, model_setup_library.activation_lib(), print_layer=True
         )
-    
+
     output = model["output"]
     latent = model["latent"]
 
     loss = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits(logits=output, labels=target)
         )
-
     optimization = tf.train.AdamOptimizer(lib["learning_rate"]).minimize(loss)
-
-    print("\n" + "-"*150)
 
     #_____________________________________________________________________________________________________________________________________
     # One-shot evaluation
@@ -461,8 +525,8 @@ def fc_vision_classifier(lib):
                 query_data, query_keys, query_lab = generate_unimodal_image_episodes.episode_data(
                     query["keys"], data_x, data_keys, data_labels
                     )
-                query_iterator = batching_library.image_iterator_with_labels(
-                    query_data, query_lab, len(query_data), lib["num_classes"], shuffle_batches_every_epoch=False, return_labels=False
+                query_iterator = batching_library.unflattened_image_iterator(
+                    query_data, len(query_data), shuffle_batches_every_epoch=False
                     )
                 query_labels = [query_lab[i] for i in query_iterator.indices]
 
@@ -470,8 +534,8 @@ def fc_vision_classifier(lib):
                 S_data, S_keys, S_lab = generate_unimodal_image_episodes.episode_data(
                     support_set["keys"], data_x, data_keys, data_labels
                     )
-                S_iterator = batching_library.image_iterator_with_labels(
-                    S_data, S_lab, len(S_data), lib["num_classes"], shuffle_batches_every_epoch=False, return_labels=False
+                S_iterator = batching_library.unflattened_image_iterator(
+                    S_data, len(S_data), shuffle_batches_every_epoch=False
                     )
                 S_labels = [S_lab[i] for i in S_iterator.indices]
 
@@ -508,81 +572,89 @@ def fc_vision_classifier(lib):
                         correct += 1
 
         return [-correct/total]
-
-
+        
     if lib["train_model"]:
+
         #______________________________________________________________________________________________
-        #Training
+        # Training
         #______________________________________________________________________________________________
 
-        train_batch_iterator = batching_library.image_iterator_with_labels(
-            train_x, train_label_ids, batch_size, lib["num_classes"],
-            lib["shuffle_batches_every_epoch"]
-            )
-
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Training model")
+        print("-"*PRINT_LENGTH)
+           
         model_fn = lib["intermediate_model_fn"]
 
         val_it = None
         validation_tensor = one_shot_validation
-        
+
+        train_batch_iterator = batching_library.resized_image_iterator_with_labels(
+            train_x, train_label_ids, lib["batch_size"], lib["num_classes"], 
+            shuffle_batches_every_epoch=True, return_labels=True
+            )
+
         record, train_log = training_library.training_model(
-            [loss, optimization], [X, target], lib, train_batch_iterator, 
-            lib["epochs"], lib["model_type"], val_it, validation_tensor, 
-            restore_fn=None, 
+            [loss, optimization, train_flag], [X, target], lib, train_batch_iterator,
+            lib["epochs"], lib["patience"], lib["min_number_epochs"], lib["model_type"], val_it, validation_tensor,
+            restore_fn=lib["best_pretrain_model_fn"] if lib["pretrain"] else None,
             save_model_fn=lib["intermediate_model_fn"], save_best_model_fn=lib["best_model_fn"]
             )
 
-        print("\n" + "-"*150)
+        model_fn = model_setup_library.get_model_fn(lib)
 
-    model_fn = model_setup_library.get_model_fn(lib)
-    results = []
     if lib["test_model"]:
-    #______________________________________________________________________________________________
-    #Final accuracy calculation
-    #______________________________________________________________________________________________
+        #______________________________________________________________________________________________
+        #Final accuracy calculation
+        #______________________________________________________________________________________________
 
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Testing model")
+        print("-"*PRINT_LENGTH)
         log = ""
+        k = lib["K"]
+
         if lib["do_one_shot_test"]:
 
             acc = one_shot_validation(lib["one_shot_testing_episode_list"], test_x, test_keys, test_labels, normalize=True)
             acc = -acc[0]
-            print("Accuracy of one-shot task: {}".format(acc))
-            print("Accuracy of one-shot task: {}%".format(acc*100))
+
+            print(f'\tAccuracy of {1}-shot task: {acc*100:.2f}%')
             results_fn = path.join(lib["output_fn"], lib["model_name"]) + "_one_shot_learning_results.txt"
-            print("Writing: {}".format(results_fn))
+            print("\tWriting: {}".format(results_fn))
             with open(results_fn, "w") as write_results:
                 write_results.write(
-                    "Accuracy of one shot-ask: {}\n".format(acc)
+                    f'Accuracy of {1}-shot task: {acc}\n'
                     )
                 write_results.write(
-                    "Accuracy of one shot-task: {}%\n".format(acc*100)
+                    f'Accuracy of {1}-shot task: {acc*100:.2f}\n'
                     )
                 write_results.close()
-            print("\n" + "-"*150)
 
             log += "One-shot accuracy of {} at rnd_seed of {} ".format(acc, lib["rnd_seed"])
-            results.append(acc)
+            print("\n")
 
         if lib["do_few_shot_test"]:
             
             acc = one_shot_validation(lib["testing_episode_list"], test_x, test_keys, test_labels, normalize=True)
             acc = -acc[0]
-            print("Accuracy of {}-shot task: {}".format(lib["K"], acc))
-            print("Accuracy of {}-shot task: {}%".format(lib["K"], acc*100))
+
+            print(f'\tAccuracy of {k}-shot task: {acc*100:.2f}%')
             results_fn = path.join(lib["output_fn"], lib["model_name"]) + "_one_shot_learning_results.txt"
-            print("Writing: {}".format(results_fn))
+            print("\tWriting: {}".format(results_fn))
             with open(results_fn, "w") as write_results:
                 write_results.write(
-                    "Accuracy of {} shot task: {}\n".format(lib["K"], acc)
+                    f'Accuracy of {k}-shot task: {acc}\n'
                     )
                 write_results.write(
-                    "Accuracy of {}-shot task: {}%\n".format(lib["K"], acc*100)
+                    f'Accuracy of {k}-shot task: {acc*100:.2f}%\n'
                     )
                 write_results.close()
-            print("\n" + "-"*150)
 
             log += "{}-shot accuracy of {} at rnd_seed of {} ".format(lib["K"], acc, lib["rnd_seed"])
-            results.append(acc)
+
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Saving model library and writing logs")
+        print("-"*PRINT_LENGTH)
 
     if lib["train_model"]:
         #______________________________________________________________________________________________
@@ -603,29 +675,21 @@ def fc_vision_classifier(lib):
         #______________________________________________________________________________________________
         
         results_fn = path.join(lib["output_fn"], lib["model_instance"]) + ".txt"
-        print("Writing: {}".format(results_fn))
+        print("\tWriting: {}".format(results_fn))
         with open(results_fn, "w") as write_results:
             if lib["pretrain"]: write_results.write(pretrain_log)
             write_results.write(train_log)
             write_results.write(log)
             write_results.close()
-        print("\n" + "-"*150)
 
-
-    print("Writing: {}".format(lib["model_log"]))
+    print("\tWriting: {}".format(lib["model_log"]))
     with open(lib["model_log"], "a") as write_results:
         write_results.write("\n{}: ".format(lib["model_instance"]) + log)
-    print("\n" + "-"*150)
 
-    model_setup_library.directory_management(lib["model_log"])
+    model_setup_library.directory_management()
 
-#_____________________________________________________________________________________________________________________________________
-#
-# Siamese FFNN model
-#
-#_____________________________________________________________________________________________________________________________________
 
-def fc_vision_siamese(lib):
+def cnn_vision_model(lib):
 
     #______________________________________________________________________________________________
     # Model setup
@@ -638,62 +702,96 @@ def fc_vision_siamese(lib):
     batch_size = lib["batch_size"] 
         
     tf.reset_default_graph()
-    print("\n" + "-"*150)
+    print("\n" + "-"*PRINT_LENGTH)
+    model_setup_library.lib_print(lib)
 
     #______________________________________________________________________________________________
     # Data processing
     #______________________________________________________________________________________________
 
-    print("\nModel parameters:")
-    model_setup_library.lib_print(lib)
+    if lib["train_model"]:
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Processing training data")
+        print("-"*PRINT_LENGTH)
 
-    train_x, train_labels, train_keys = (
-        data_library.load_image_data_from_npz(lib["train_data_dir"])
-        )
-    val_x, val_labels, val_keys = (
-        data_library.load_image_data_from_npz(lib["val_data_dir"])
-        )
+        train_x, train_labels, train_keys = (
+            data_library.load_image_data_from_npz(lib["train_data_dir"])
+            )
+
+        if lib["pretrain"]:
+            if lib["pretrain_train_data_dir"] == lib["train_data_dir"]:
+                pretrain_train_x = train_x
+                pretrain_train_labels = train_labels
+                pretrain_train_keys = train_keys
+            else:
+                pretrain_train_x, pretrain_train_labels, pretrain_train_keys = (
+                    data_library.load_image_data_from_npz(lib["pretrain_train_data_dir"])
+                    )
+
+        if (lib["mix_training_datasets"] and (lib["data_type"] != lib["other_image_dataset"])):
+            if (lib["other_train_data_dir"] == (lib["pretrain_train_data_dir"] and lib["pretrain"])):
+                other_train_x = pretrain_train_x
+                other_train_labels = pretrain_train_labels
+                other_train_keys = pretrain_train_keys
+            else:
+                other_train_x, other_train_labels, other_train_keys = (
+                    data_library.load_image_data_from_npz(lib["other_train_data_dir"])
+                    )
+
+            if (lib["pretrain"] and (lib["pretraining_data"] != lib["other_pretraining_image_dataset"])):
+                if lib["other_pretrain_train_data_dir"] == lib["train_data_dir"]:
+                    other_pretrain_train_x = train_x
+                    other_pretrain_train_labels = train_labels
+                    other_pretrain_train_keys = train_keys
+                elif lib["other_pretrain_train_data_dir"] == lib["other_train_data_dir"]:
+                    other_pretrain_train_x = other_train_x
+                    other_pretrain_train_labels = other_train_labels
+                    other_pretrain_train_keys = other_train_keys
+                else:
+                    other_pretrain_train_x, other_pretrain_train_labels, other_pretrain_train_keys = (
+                        data_library.load_image_data_from_npz(lib["other_pretrain_train_data_dir"])
+                        )
+
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Processing validation data")
+        print("-"*PRINT_LENGTH)
+        val_x, val_labels, val_keys = (
+            data_library.load_image_data_from_npz(lib["val_data_dir"])
+            )
+
+    print("\n" + "-"*PRINT_LENGTH)
+    print("Processing testing data")
+    print("-"*PRINT_LENGTH)
     test_x, test_labels, test_keys = (
         data_library.load_image_data_from_npz(lib["test_data_dir"])
         )
 
-    # Convert labels to integer numbers for training
-    train_labels_set = list(set(train_labels))
-    label_ids = {}
-    for label_id, label in enumerate(sorted(train_labels_set)):
-        label_ids[label] = label_id
-    train_label_ids = []
-    for label in train_labels:
-        train_label_ids.append(label_ids[label])
-
-    lib["num_classes"] = len(train_labels_set)
-  
-    print("\n" + "-"*150)
+    if lib["train_model"] is False:
+        val_x = test_x
+        val_labels = test_labels
+        val_keys = test_keys
 
     #______________________________________________________________________________________________
     #Building model
     #______________________________________________________________________________________________
 
-    print("FFNN structure:")
-     
-    X = tf.placeholder(tf.float32, [None, lib["input_dim"]])
-    target = tf.placeholder(tf.int32, [None])
-    training_placeholders = [X, target]
+    print("\n" + "-"*PRINT_LENGTH)
+    print("CNN structure setup")
+    print("-"*PRINT_LENGTH)
 
-    model = model_legos_library.siamese_fc_architecture(
-        [X], lib, model_setup_library.activation_lib()
-        )
-    
-    latent = tf.nn.l2_normalize(model["output"], axis=1)
-    output = latent
-
-    loss = tf.contrib.losses.metric_learning.triplet_semihard_loss(
-        labels=target, embeddings=output, margin=lib["margin"]
+    X = tf.placeholder(tf.float32, [None, 28, 28, 1])
+    target = tf.placeholder(tf.float32, [None, 28, 28, 1])
+    train_flag = tf.placeholder_with_default(False, shape=())
+    model = model_legos_library.cnn_architecture(
+        X, train_flag, lib["enc"], lib["enc_strides"], model_setup_library.pooling_lib(), lib["pool_layers"], lib["latent"], 
+        lib["dec"], lib["dec_strides"], lib, model_setup_library.activation_lib(), print_layer=True
         )
 
+    output = model["output"]
+    latent = model["latent"]
+
+    loss = tf.reduce_mean(tf.pow(target - output, 2))
     optimization = tf.train.AdamOptimizer(lib["learning_rate"]).minimize(loss)
-
-    print("\n" + "-"*150)
 
     #_____________________________________________________________________________________________________________________________________
     # One-shot evaluation
@@ -719,8 +817,8 @@ def fc_vision_siamese(lib):
                 query_data, query_keys, query_lab = generate_unimodal_image_episodes.episode_data(
                     query["keys"], data_x, data_keys, data_labels
                     )
-                query_iterator = batching_library.image_iterator_with_labels(
-                    query_data, query_lab, len(query_data), lib["num_classes"], shuffle_batches_every_epoch=False, return_labels=False
+                query_iterator = batching_library.unflattened_image_iterator(
+                    query_data, len(query_data), shuffle_batches_every_epoch=False
                     )
                 query_labels = [query_lab[i] for i in query_iterator.indices]
 
@@ -728,8 +826,8 @@ def fc_vision_siamese(lib):
                 S_data, S_keys, S_lab = generate_unimodal_image_episodes.episode_data(
                     support_set["keys"], data_x, data_keys, data_labels
                     )
-                S_iterator = batching_library.image_iterator_with_labels(
-                    S_data, S_lab, len(S_data), lib["num_classes"], shuffle_batches_every_epoch=False, return_labels=False
+                S_iterator = batching_library.unflattened_image_iterator(
+                    S_data, len(S_data), shuffle_batches_every_epoch=False
                     )
                 S_labels = [S_lab[i] for i in S_iterator.indices]
 
@@ -766,85 +864,199 @@ def fc_vision_siamese(lib):
                         correct += 1
 
         return [-correct/total]
-
-
+        
     if lib["train_model"]:
+
         #______________________________________________________________________________________________
-        #Training
+        # Pre-training
         #______________________________________________________________________________________________
 
-        if lib["data_type"] == "omniglot": 
-            pair_list = data_library.data_pairs(train_label_ids)
+        if lib["pretrain"]:
+
+            print("\n" + "-"*PRINT_LENGTH)
+            print("Pre-training model")
+            print("-"*PRINT_LENGTH)
+
+            if lib["pretraining_model"] == "cae":
+                if lib["pretraining_data"] == "MNIST" and lib["overwrite_pairs"] is False:
+
+                    print("\tReading in data pairs from {} for {}...".format(lib["pretrain_train_pair_file"], lib["pretraining_data"]))
+                    pair_list = data_library.data_pairs_from_file(lib["pretrain_train_pair_file"], pretrain_train_keys)
+
+                    if (lib["mix_training_datasets"] and (lib["pretraining_data"] != lib["other_pretraining_image_dataset"])):
+                        print("\tGenerating more training data pairs for {}...".format(lib["other_pretraining_image_dataset"]))
+                        other_pair_list = data_library.data_pairs(other_pretrain_train_labels)
+                    else: other_pair_list = []
+
+                else: 
+
+                    print("\tGenerating training data pairs for {}...".format(lib["pretraining_data"]))
+                    pair_list = data_library.data_pairs(pretrain_train_labels)
+
+                    if (lib["mix_training_datasets"] and (lib["pretraining_data"] != lib["other_pretraining_image_dataset"])):
+                        print("\tReading in more training data pairs from {} for {}...".format(lib["other_pretrain_train_pair_file"], lib["other_pretraining_image_dataset"]))
+                        other_pair_list = data_library.data_pairs_from_file(lib["other_pretrain_train_pair_file"], other_pretrain_train_keys)
+                    else: other_pair_list = []
+
+            elif lib["pretraining_model"] == "ae":
+
+                print("\tGenerating training data pairs for {}...".format(lib["pretraining_data"]))
+                pair_list = [(i, i) for i in range(len(pretrain_train_x))]
+
+                if (lib["mix_training_datasets"] and (lib["pretraining_data"] != lib["other_pretraining_image_dataset"])):
+                    print("\tGenerating more training data pairs for {}...".format(lib["other_pretraining_image_dataset"]))
+                    other_pair_list = [(i, i) for i in range(len(other_pretrain_train_x))]
+                else: other_pair_list = []
+
+            if (lib["mix_training_datasets"] and (lib["data_type"] != lib["other_image_dataset"])):
+                new_train_x = pretrain_train_x.copy()
+                new_train_x.extend(other_pretrain_train_x)
+
+                new_pair_list = pair_list.copy()
+                N = len(pair_list) if len(pair_list) > len(pretrain_train_x) else len(pretrain_train_x)
+                for (a, b) in other_pair_list:
+                    new_pair_list.append((a+N, b+N))
+
+            else:
+                new_train_x = pretrain_train_x
+                new_pair_list = pair_list
+
+            train_batch_iterator = batching_library.unflattened_pair_image_iterator(
+                new_train_x, new_pair_list, batch_size, lib["shuffle_batches_every_epoch"]
+                )
+
+            model_fn = lib["intermediate_pretrain_model_fn"]
+
+            val_it = None
+            validation_tensor = one_shot_validation
+
+            pretrain_record, pretrain_log = training_library.training_model(
+                [loss, optimization, train_flag], [X, target], lib, train_batch_iterator,
+                lib["pretraining_epochs"], lib["patience"], lib["min_number_epochs"], lib["pretraining_model"], val_it, validation_tensor, restore_fn=None,
+                save_model_fn=lib["intermediate_pretrain_model_fn"],
+                save_best_model_fn=lib["best_pretrain_model_fn"], pretraining=True
+                )
+
+        #______________________________________________________________________________________________
+        # Training
+        #______________________________________________________________________________________________
+
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Training model")
+        print("-"*PRINT_LENGTH)
+
+        if lib["model_type"] == "cae":
+            if lib["data_type"] == "MNIST" and lib["overwrite_pairs"] is False:
+
+                print("\tReading in training data pairs from {} for {}...".format(lib["train_pair_file"], lib["data_type"]))
+                pair_list = data_library.data_pairs_from_file(lib["train_pair_file"], train_keys)
+
+                if lib["mix_training_datasets"] and lib["other_image_dataset"] != lib["data_type"]:
+                    print("\tGenerating more training data pairs for {}...".format(lib["other_image_dataset"]))
+                    other_pair_list = data_library.data_pairs(other_train_labels)
+                else: other_pair_list = []
+
+            else:
+
+                print("\tGenerating training data pairs for {}...".format(lib["data_type"]))
+                pair_list = data_library.data_pairs(train_labels)
+
+                if lib["mix_training_datasets"] and lib["other_image_dataset"] != lib["data_type"]:
+                    print("\tReading in more training data pairs from {} for {}...".format(lib["other_train_pair_file"], lib["other_image_dataset"]))
+                    other_pair_list = data_library.data_pairs_from_file(lib["other_train_pair_file"], other_train_keys)
+                else: other_pair_list = []
+
+        elif lib["model_type"] == "ae":
+            print("\tGenerating training data pairs for {}...".format(lib["data_type"]))
+            pair_list = [(i, i) for i in range(len(train_x))]
+
+            if lib["mix_training_datasets"] and lib["other_image_dataset"] != lib["data_type"]:
+                print("\tGenerating more training data pairs for {}...".format(lib["other_image_dataset"]))
+                other_pair_list = [(i, i) for i in range(len(other_train_x))]
+            else: other_pair_list = []
+
+        if (lib["mix_training_datasets"] and (lib["data_type"] != lib["other_image_dataset"])):
+            new_train_x = train_x.copy()
+            new_train_x.extend(other_train_x)
+
+            new_pair_list = pair_list.copy()
+            N = len(pair_list) if len(pair_list) > len(train_x) else len(train_x)
+            for (a, b) in other_pair_list:
+                new_pair_list.append((a+N, b+N))
         else: 
-            pair_list = [(i, i) for i in range(len(train_label_ids))]
-           
-        train_batch_iterator = batching_library.image_iterator_with_one_dimensional_labels(
-            train_x, pair_list, train_label_ids, batch_size, lib["shuffle_batches_every_epoch"]
+            new_train_x = train_x
+            new_pair_list = pair_list
+
+        train_batch_iterator = batching_library.unflattened_pair_image_iterator(
+            new_train_x, new_pair_list, batch_size, lib["shuffle_batches_every_epoch"]
             )
 
         model_fn = lib["intermediate_model_fn"]
-
         val_it = None
         validation_tensor = one_shot_validation
-        
+
         record, train_log = training_library.training_model(
-            [loss, optimization], [X, target], lib, train_batch_iterator, 
-            lib["epochs"], lib["model_type"], val_it, validation_tensor, 
-            restore_fn=None, 
+            [loss, optimization, train_flag], [X, target], lib, train_batch_iterator,
+            lib["epochs"], lib["patience"], lib["min_number_epochs"], lib["model_type"], val_it, validation_tensor,
+            restore_fn=lib["best_pretrain_model_fn"] if lib["pretrain"] else None,
             save_model_fn=lib["intermediate_model_fn"], save_best_model_fn=lib["best_model_fn"]
             )
 
-        print("\n" + "-"*150)
+        model_fn = model_setup_library.get_model_fn(lib)
 
-    model_fn = model_setup_library.get_model_fn(lib)
-    results = []
     if lib["test_model"]:
-    #______________________________________________________________________________________________
-    #Final accuracy calculation
-    #______________________________________________________________________________________________
+        #______________________________________________________________________________________________
+        #Final accuracy calculation
+        #______________________________________________________________________________________________
 
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Testing model")
+        print("-"*PRINT_LENGTH)
         log = ""
+        k = lib["K"]
+
         if lib["do_one_shot_test"]:
 
             acc = one_shot_validation(lib["one_shot_testing_episode_list"], test_x, test_keys, test_labels, normalize=True)
             acc = -acc[0]
-            print("Accuracy of one-shot task: {}".format(acc))
-            print("Accuracy of one-shot task: {}%".format(acc*100))
+
+            print(f'\tAccuracy of {1}-shot task: {acc*100:.2f}%')
             results_fn = path.join(lib["output_fn"], lib["model_name"]) + "_one_shot_learning_results.txt"
-            print("Writing: {}".format(results_fn))
+            print("\tWriting: {}".format(results_fn))
             with open(results_fn, "w") as write_results:
                 write_results.write(
-                    "Accuracy of one shot-ask: {}\n".format(acc)
+                    f'Accuracy of {1}-shot task: {acc}\n'
                     )
                 write_results.write(
-                    "Accuracy of one shot-task: {}%\n".format(acc*100)
+                    f'Accuracy of {1}-shot task: {acc*100:.2f}\n'
                     )
                 write_results.close()
-            print("\n" + "-"*150)
 
             log += "One-shot accuracy of {} at rnd_seed of {} ".format(acc, lib["rnd_seed"])
-            results.append(acc)
+            print("\n")
 
         if lib["do_few_shot_test"]:
             
             acc = one_shot_validation(lib["testing_episode_list"], test_x, test_keys, test_labels, normalize=True)
             acc = -acc[0]
-            print("Accuracy of {}-shot task: {}".format(lib["K"], acc))
-            print("Accuracy of {}-shot task: {}%".format(lib["K"], acc*100))
+
+            print(f'\tAccuracy of {k}-shot task: {acc*100:.2f}%')
             results_fn = path.join(lib["output_fn"], lib["model_name"]) + "_one_shot_learning_results.txt"
-            print("Writing: {}".format(results_fn))
+            print("\tWriting: {}".format(results_fn))
             with open(results_fn, "w") as write_results:
                 write_results.write(
-                    "Accuracy of {} shot task: {}\n".format(lib["K"], acc)
+                    f'Accuracy of {k}-shot task: {acc}\n'
                     )
                 write_results.write(
-                    "Accuracy of {}-shot task: {}%\n".format(lib["K"], acc*100)
+                    f'Accuracy of {k}-shot task: {acc*100:.2f}%\n'
                     )
                 write_results.close()
-            print("\n" + "-"*150)
 
             log += "{}-shot accuracy of {} at rnd_seed of {} ".format(lib["K"], acc, lib["rnd_seed"])
-            results.append(acc)
+
+        print("\n" + "-"*PRINT_LENGTH)
+        print("Saving model library and writing logs")
+        print("-"*PRINT_LENGTH)
 
     if lib["train_model"]:
         #______________________________________________________________________________________________
@@ -865,18 +1077,15 @@ def fc_vision_siamese(lib):
         #______________________________________________________________________________________________
         
         results_fn = path.join(lib["output_fn"], lib["model_instance"]) + ".txt"
-        print("Writing: {}".format(results_fn))
+        print("\tWriting: {}".format(results_fn))
         with open(results_fn, "w") as write_results:
             if lib["pretrain"]: write_results.write(pretrain_log)
             write_results.write(train_log)
             write_results.write(log)
             write_results.close()
-        print("\n" + "-"*150)
 
-
-    print("Writing: {}".format(lib["model_log"]))
+    print("\tWriting: {}".format(lib["model_log"]))
     with open(lib["model_log"], "a") as write_results:
         write_results.write("\n{}: ".format(lib["model_instance"]) + log)
-    print("\n" + "-"*150)
 
-    model_setup_library.directory_management(lib["model_log"])
+    model_setup_library.directory_management()

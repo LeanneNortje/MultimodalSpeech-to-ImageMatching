@@ -3,7 +3,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 # Some fragment of code adapted from and credit given to: Herman Kamper
 #_________________________________________________________________________________________________
@@ -121,13 +121,16 @@ def main():
 
         indices = np.argsort(distances)
         key_pair_file.write("{}".format(key))
+        key_speaker = key.split("_")[1].split("-")[0]
         count = 0
         i = 0
         while count < args.num_pairs:
             cur_key = keys[indices[i]]
+            cur_key_speaker = cur_key.split("_")[1].split("-")[0]
             i += 1
-            if key != cur_key: 
-                key_pair_file.write(" {}".format(cur_key))
+
+            if key_speaker != cur_key_speaker and key != cur_key:
+                key_pair_file.write("\t{}".format(cur_key))
                 count += 1
             if count == args.num_pairs: key_pair_file.write("\n")
 

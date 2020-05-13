@@ -3,11 +3,11 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
-# This script downsamples the images in the Omniglot dataset to 28x28 pixels. 
+# This script splits the Omnoglot dataset into train, validation and test subsets. 
 #
 
 from datetime import datetime
@@ -44,6 +44,9 @@ sys.path.append(path.join("..", feats_path))
 import speech_library
 feats_path = path.join("..", feats_path)
 
+old_v = tf.logging.get_verbosity()
+tf.logging.set_verbosity(tf.logging.ERROR)
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -54,7 +57,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # Main
 #
 #_____________________________________________________________________________________________________________________________________
-
 
 def main():
 
@@ -86,10 +88,14 @@ def main():
 
     speech_library.write_feats(test_dict, save_fn)
 
-    # Validation data
+    # Training and validation data
     train_fn = path.join(data_dir, "train", "*", "*", "*.png")
+    temp_dict = {}
+    all_classes = []
     train_dict = {}
+    val_dict = {}
     save_fn = path.join(out_dir, "train")
+    val_save_fn = path.join(out_dir, "validation")
 
     for im_fn in tqdm(sorted(glob.glob(train_fn))):
         im = ImageOps.invert(Image.open(im_fn).resize((28, 28)).convert('L'))
@@ -105,9 +111,22 @@ def main():
                     print("Image contains NaN values")
         
         name = im_fn.split("/")[-1].split(".")[0]
-        train_dict[name] = im
+        all_classes.append(name.split("_")[0])
+        temp_dict[name] = im
 
+
+    unique_classes = sorted(list(set(all_classes)))
+    train_classes = unique_classes[0:664]
+    val_classes = unique_classes[664:]
+
+    for im_name in temp_dict:
+        name = im_name.split("_")[0]
+
+        if name in train_classes: train_dict[im_name] = temp_dict[im_name]
+        elif name in val_classes: val_dict[im_name] = temp_dict[im_name]
+    
     speech_library.write_feats(train_dict, save_fn)
+    speech_library.write_feats(val_dict, val_save_fn)
 
 if __name__ == "__main__":
     main()

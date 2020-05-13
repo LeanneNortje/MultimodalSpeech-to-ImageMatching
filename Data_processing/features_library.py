@@ -1,7 +1,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 # Some fragment of code adapted from and credit given to: James Lyons, Python Speech Features, https://github.com/jameslyons/python_speech_features
 #_________________________________________________________________________________________________
@@ -212,7 +212,7 @@ def speaker_mean_and_variance(feats, speakers):
 def speaker_mean_variance_normalization(feats, mean_of_speaker, variance_of_speaker):
 
     print("\nNormalizing for different speakers:")
-    #output_feats = {}
+
     for key in tqdm(sorted(feats)):
         s = key.split("_")[0]
         feats[key] = ((feats[key] - mean_of_speaker[s]) / variance_of_speaker[s])

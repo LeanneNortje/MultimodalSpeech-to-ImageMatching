@@ -1,6 +1,11 @@
 ## Baseline tests
 
-For each of the scripts in this section, change the number of CPU cores you want to use. It is currently set to `6`.
+For each of the scripts in this section, change the number of CPU cores you want to use. It is currently set to `6`. 
+
+Go to the `Few_shot_learning` directory. 
+```
+cd Few_shot_learning/
+```
 
 # Unimodal one-shot image classification 
 

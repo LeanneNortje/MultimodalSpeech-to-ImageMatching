@@ -1,7 +1,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
@@ -38,6 +38,8 @@ def saving_path(directory, name):
 def check_dir(directory):
     if not path.isdir(directory):
         os.makedirs(directory)
+
+
 
 #_____________________________________________________________________________________________________________________________________
 #
@@ -127,8 +129,8 @@ def spectogram(first, num_to_print, fig_dir):
 
 def double_spectogram(name, first, second, num_to_print, size, fig_dir):
 
-    length = first.shape[-1] #13
-    width = first.shape[-2] #100
+    length = first.shape[-1]
+    width = first.shape[-2]
     image = np.empty((num_to_print * length, width * 2))
     for j in range(num_to_print):
         image[j * length: (j + 1) * length, 0 * width: 1 * width] = first[j, :, :].reshape([length, width])

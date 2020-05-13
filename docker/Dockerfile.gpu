@@ -5,8 +5,8 @@
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
-# This docker image uses the official tensorflow docker image for version 1.14.0 with python 3 and 
-# GPU support. 
+# This docker image uses the official tensorflow docker image for version 1.14.0 with python 3, 
+# GPU support and jupyter notebook. 
 #
 
 # Parent image is docker image for TensorFlow 
@@ -18,14 +18,12 @@ RUN apt-get update && \
         less \
         nano \
         git \
-        unzip \
         && \
     python -m pip --no-cache-dir install --upgrade \
         setuptools==40.8.0 \
         pip==19.1.1 \
         && \
     python -m pip --no-cache-dir install --upgrade \
-        Keras==2.3.1 \
         ipython==7.5.0 \
         nose==1.3.7 \
         jupyter==1.0.0 \

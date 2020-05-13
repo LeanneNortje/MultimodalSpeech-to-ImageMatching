@@ -1,11 +1,12 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
-# This docker image uses the official tensorflow docker image for version 1.14.0 with python 3.
+# This docker image uses the official tensorflow docker image for version 1.14.0 with python 3 and
+# jupyter notebook.
 #
 
 # Parent image is docker image for TensorFlow 

@@ -1,7 +1,7 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
@@ -34,10 +34,16 @@ from features_library import mfcc
 sys.path.append("..")
 from paths import data_path
 from paths import general_lib_path
+from paths import model_lib_path
 data_path = path.join("..", data_path)
+
+sys.path.append(path.join("..", model_lib_path))
+import model_setup_library
 
 sys.path.append(path.join("..", general_lib_path))
 import util_library
+
+PRINT_LENGTH = model_setup_library.PRINT_LENGTH
 
 #_____________________________________________________________________________________________________________________________________
 #
@@ -96,7 +102,7 @@ def extract_features(lib, **kwargs):
     feats = features_library.speaker_mean_variance_normalization(feats, mean, variance)
     write_feats(feats, raw_feats_dir)
 
-    print("\n" + "-"*150)
+    print("\n" + "-"*PRINT_LENGTH)
 
     return feats
 
@@ -135,20 +141,20 @@ def extract_segments(feats, lib, **kwargs):
     seg_feats_dir = path.join(segment_path, dataset + "_" + feats_type + "_segmented_features")
     write_feats(segmented_feats, seg_feats_dir)
     
-    print("\n" + "-"*150)
+    print("\n" + "-"*PRINT_LENGTH)
     
     train_feats, train_list, val_feats, val_list, test_feats, test_list = extract_subsets(
         lib, segments_or_words, **kwargs
         ) 
     
-    print("\n" + "-"*150)
+    print("\n" + "-"*PRINT_LENGTH)
 
     if extract_words_or_not:
         print("\nExtracting ground truth words from subset segments:\n")
         extract_words(train_feats, train_list, lib, "train", **kwargs)
         extract_words(val_feats, val_list, lib, "val", **kwargs)
         extract_words(test_feats, test_list, lib, "test", **kwargs)
-        print("\n" + "-"*150)
+        print("\n" + "-"*PRINT_LENGTH)
 
 #_____________________________________________________________________________________________________________________________________
 #
@@ -330,7 +336,6 @@ def extract_words(feats, feats_list, lib, train_val_or_test, **kwargs):
                 new_key = "{}".format(label) + "_" + basekey + "_{:06d}-{:06d}".format(start, end)
                 if end - start - 1 != 0:
                     output_dict[new_key] = feats[key][start-base_start:end-base_start, :]
-    
 
     else:
 

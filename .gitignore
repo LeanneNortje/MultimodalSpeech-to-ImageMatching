@@ -1,5 +1,7 @@
 Data_libraries/__pycache__/
 
+Data_pairs/**/classifier_latents/
+
 Data_pairs/*/*/key_lists/
 
 Data_pairs/*/*/key_pair_lists/
@@ -11,6 +13,12 @@ Data_pairs/*/*/*/*/*/key_lists/
 Data_pairs/*/*/*/*/*/key_pair_lists/
 
 Data_pairs/*/*/*/*/*/keys.list
+
+Data_pairs/**/siamese_latents/
+
+Data_pairs/buckeye/
+
+Data_pairs/omniglot/
 
 Data_processing/buckeye/
 
@@ -44,15 +52,11 @@ Datasets/TIDigits/tidigits_wavs/
 
 Datasets/TIDigits/tmp/
 
-Datasets/wordpairs/
-
-Datasets/Xitsonga/
-
 docker/HTK-3.4.1.tar.gz/
 
-Feature_evaluation/Samediff_evaluation/Experiments/
-
 Few_shot_learning/Experiments/
+
+Few_shot_learning/Episode_files/
 
 Few_shot_learning/generated_files/
 
@@ -60,13 +64,19 @@ General_libraries/__pycache__/
 
 Model_data/
 
+Model_data_non_final/
+
 Model_evaluation/__pycache__/
 
 Model_libraries/__pycache__/
 
-Model_results/Multi_modal_results/
+Model_results/Multimodal_results/
 
-Model_results/Results/
+Model_results/Non_final_unimodal_results/
+
+Model_results/Unimodal_results/
+
+Model_results/Graphs_of_results/
 
 Notebooks/.ipynb_checkpoints/
 

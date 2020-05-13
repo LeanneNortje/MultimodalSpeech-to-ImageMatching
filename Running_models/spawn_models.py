@@ -3,61 +3,12 @@
 #_________________________________________________________________________________________________
 #
 # Author: Leanne Nortje
-# Year: 2019
+# Year: 2020
 # Email: nortjeleanne@gmail.com
 #_________________________________________________________________________________________________
 #
-# This model spawns all the models we implemented in this paper. To describe the architectures we
-# used, we use a shorthand of :
-#                               => RNN(X) for a RNN layer of size X,
-#                               => FC(X) for a fully-connected layer of size X and 
-#                               => softmax(X) for a softmax layer of size X. 
+# This script spawns the training of final models.
 #
-# The speech classifier architecture is: 
-#                               => 3 × RNN(400); 
-#                               => FC(130) representation layer; 
-#                               => softmax(5118). 
-#The vision classifier architecture is: 
-#                               => FC(512);
-#                               => ReLU; 
-#                               => FC(512); 
-#                               => ReLU; 
-#                               => FC(512); 
-#                               => FC(130) representation layer; 
-#                               => softmax(964). 
-# The Siamese speech architecture is: 
-#                               => 3 × RNN(400); 
-#                               => FC(130), 
-# The Siamese vision architecture is:
-#                               => FC(512); 
-#                               => ReLU; 
-#                               => FC(512); 
-#                               => ReLU; 
-#                               => FC(512);
-#                               => FC(130) representation layer. 
-#The speech AE, CAE and AE-CAE has architectures of: 
-#                               => 3 × RNN(400); 
-#                               => FC(130) representation layer; 
-#                               => FC(400); 
-#                               => 3 × RNN(400); 
-#                               => fully-connected layer of the same size as the input. 
-#The vision AE, CAE and AE-CAE has architectures of: 
-#                               => FC(512); 
-#                               => ReLU; 
-#                               => FC(512);
-#                               => ReLU; FC(512); 
-#                               => FC(130) representation layer; 
-#                               => FC(512);
-#                               => ReLU;
-#                               =>  FC(512); 
-#                               => ReLU; 
-#                               => FC(512); 
-#                               => ReLU; 
-#                               => FC(784) (28 × 28 pixels).
-#
-# We use a batch size of 256 or 512 and varying epochs depending on which suits the model best. 
-# We use a learning rate of 0.001 everywhere. 
-#_________________________________________________________________________________________________
 
 from datetime import datetime
 from os import path
@@ -74,22 +25,34 @@ import subprocess
 import sys
 from tqdm import tqdm
 
+sys.path.append("..")
+from paths import model_lib_path
+
+sys.path.append(path.join("..", model_lib_path))
+import model_setup_library
+
 import warnings
 warnings.filterwarnings("ignore")
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-SEEDS = [1, 5, 10, 21, 42]
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
+PRINT_LENGTH = model_setup_library.PRINT_LENGTH
+SEEDS = [1, 5, 10, 21, 42]
 #_____________________________________________________________________________________________________________________________________
 #
 # Argument function
 #
 #_____________________________________________________________________________________________________________________________________
 
+
+
 def arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test_seeds", type=str, choices=["True", "False"], default="False")
+    parser.add_argument("--test_seeds", type=str, choices=["True", "False"], default="True")
+    parser.add_argument("--test_batch_size", type=str, choices=["True", "False"], default="False")
     return parser.parse_args()
+
 
 #_____________________________________________________________________________________________________________________________________
 #
@@ -97,66 +60,103 @@ def arguments():
 #
 #_____________________________________________________________________________________________________________________________________
 
+
 def main():
 
     parameters = arguments()
 
     model_commands = [
+     
+        ## 2
 
-        "--model_type ae --architecture rnn --data_type buckeye  --batch_size 512 --epochs 50 " 
+        "--model_type cae --architecture rnn --data_type buckeye --epochs 50 --batch_size 128 " 
         + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 ",
 
-        "--model_type cae --architecture rnn --data_type buckeye --batch_size 512 --epochs 50 " 
-        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 ",
+        "--model_type cae --architecture cnn --data_type omniglot --epochs 50 --batch_size 512 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130",
 
-        "--model_type cae --architecture rnn --data_type buckeye --batch_size 512 --pretrain True --epochs 50 " 
+
+
+        "--model_type cae --architecture rnn --data_type buckeye --pretrain True --batch_size 256 " 
         + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130",
 
-
-        "--model_type ae --architecture rnn --data_type TIDigits --batch_size 512 --epochs 50 " 
-        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 ",
-
-        "--model_type cae --architecture rnn --data_type TIDigits --batch_size 512 --epochs 50 " 
-        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 ",
-
-        "--model_type cae --architecture rnn --data_type TIDigits --batch_size 512 --pretrain True --epochs 50 " 
-        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 ",
+        "--model_type cae --architecture cnn --data_type omniglot --pretrain True --epochs 50 --batch_size 1024 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130",
 
 
-        "--model_type ae --architecture fc --data_type omniglot --batch_size 256 --epochs 50 " 
-        + "--enc 512_512_512 --latent 130",
+        ## 4
 
-        "--model_type cae --architecture fc --data_type omniglot --batch_size 64 --epochs 50 " 
-        + "--enc 512_512_512 --latent 130",
+        "--model_type ae --architecture rnn --data_type TIDigits --epochs 50 --batch_size 128 " 
+        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130",
 
-        "--model_type cae --architecture fc --data_type omniglot --batch_size 256 --epochs 50 " 
-        + "--enc 512_512_512 --latent 130 --pretrain True",
-
-
-        "--model_type ae --architecture fc --data_type MNIST --batch_size 256 --epochs 50 " 
-        + "--enc 512_512_512 --latent 130",
-
-        "--model_type cae --architecture fc --data_type MNIST --batch_size 1024 --epochs 50 " 
-        + "--enc 512_512_512 --latent 130",
-
-        "--model_type cae --architecture fc --data_type MNIST --batch_size 1024 --epochs 50 " 
-        + "--enc 512_512_512 --latent 130 --pretrain True",
-
-
-        "--model_type classifier --architecture rnn --data_type buckeye  --batch_size 512 --epochs 50 " 
-        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 ",
-
-        "--model_type classifier --architecture fc --data_type omniglot --batch_size 256 --epochs 50 " 
-        + "--enc 512_512_512 --latent 130",
+        "--model_type ae --architecture cnn --data_type MNIST --epochs 50 --batch_size 1024 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130",
 
 
 
-        "--model_type siamese --architecture rnn --data_type buckeye  --batch_size 256 --epochs 50 " 
-        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 ",
+        "--model_type cae --architecture rnn --data_type TIDigits --epochs 50 --batch_size 256 " 
+        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 --pair_type default",
 
-        "--model_type siamese --architecture fc --data_type omniglot --batch_size 256 --epochs 50 " 
-        + "--enc 512_512_512 --latent 130",
+        "--model_type cae --architecture cnn --data_type MNIST --epochs 50 --batch_size 1024 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130 --pair_type default",
 
+
+
+        "--model_type cae --architecture rnn --data_type TIDigits --pretrain True --batch_size 256 " 
+        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 --pair_type default",
+
+        "--model_type cae --architecture cnn --data_type MNIST --pretrain True --epochs 50 --batch_size 1024 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130 --pair_type default",
+
+        "--model_type cae --architecture rnn --data_type TIDigits --epochs 50 --batch_size 128 " 
+        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 --pair_type default --overwrite_pairs True",
+
+        "--model_type cae --architecture cnn --data_type MNIST --epochs 50 --batch_size 1024 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130 --pair_type default --overwrite_pairs True",
+
+
+        ## 8
+
+
+        "--model_type cae --architecture rnn --data_type TIDigits --epochs 50 --batch_size 128 " 
+        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 --pair_type classifier",
+
+        "--model_type cae --architecture cnn --data_type MNIST --epochs 50 --batch_size 1024 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130 --pair_type classifier",
+
+
+
+        "--model_type cae --architecture rnn --data_type TIDigits --pretrain True --batch_size 128 " 
+        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 --pair_type classifier",
+
+        "--model_type cae --architecture cnn --data_type MNIST --pretrain True --epochs 50 --batch_size 1024 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130 --pair_type classifier",
+
+
+        ## 6
+
+        "--model_type ae --architecture rnn --data_type TIDigits --epochs 50 --batch_size 512 " 
+        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 --pretrain True --pretraining_epochs 20 --pretraining_model ae --pretraining_data buckeye",
+
+        "--model_type ae --architecture cnn --data_type MNIST --epochs 50 --batch_size 512 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130 --pretrain True --pretraining_epochs 20 --pretraining_model ae --pretraining_data omniglot",
+
+
+        "--model_type cae --architecture rnn --data_type TIDigits --epochs 50 --batch_size 128 " 
+        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 --pair_type classifier --pretrain True --pretraining_epochs 20 --pretraining_model cae --pretraining_data buckeye",
+
+        "--model_type cae --architecture cnn --data_type MNIST --epochs 50 --batch_size 1024 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130 --pair_type classifier --pretrain True --pretraining_epochs 20 --pretraining_model cae --pretraining_data omniglot",
+
+
+
+        "--model_type cae --architecture rnn --data_type TIDigits --pretrain True --batch_size 512 " 
+        + "--features_type mfcc --train_tag gt --enc 400_400_400 --latent 130 --pair_type classifier --pretrain True --pretraining_epochs 20 --pretraining_model ae --pretraining_data buckeye",
+
+        "--model_type cae --architecture cnn --data_type MNIST --pretrain True --epochs 50 --batch_size 1024 " 
+        + "--enc 3.3.32.1.1.2.2_3.3.64.1.1.2.2_3.3.128.1.1 --latent 130 --pair_type classifier --pretrain True --pretraining_epochs 20 --pretraining_model ae --pretraining_data omniglot",
+     
+     
     ]
     
     test_seeds = parameters.test_seeds == "True"
@@ -165,18 +165,15 @@ def main():
         if test_seeds:
             for rnd_seed in SEEDS:
                 cmd = "./train_model.py " + this_command + " --rnd_seed {}".format(rnd_seed)
-                print("-"*150)
-                print("\nCommand: " + cmd)
-                print("\n" + "-"*150)
+                print_string = cmd
+                model_setup_library.command_printing(print_string)
                 sys.stdout.flush()
                 proc = subprocess.Popen(cmd, shell=True)
                 proc.wait()
-
         else:
             cmd = "./train_model.py " + this_command
-            print("-"*150)
-            print("\nCommand: " + cmd)
-            print("\n" + "-"*150)
+            print_string = cmd
+            model_setup_library.command_printing(print_string)
             sys.stdout.flush()
             proc = subprocess.Popen(cmd, shell=True)
             proc.wait()
