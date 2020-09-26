@@ -14,7 +14,7 @@ To install the latest `docker` for linux (ubuntu), follow these [steps](install_
 
 ## Installing `nvidia-docker`
 
-Firstly make sure to follow the steps in [Installing docker](#Installing-docker). Then follow the steps in [steps](install_nvidia_docker.md).
+Firstly make sure to follow the steps in [Installing docker](#Installing-docker). Then follow the steps [here](install_nvidia_docker.md).
 
 NOTE: If you intend on building the GPU-image in [Build docker images](#Build-docker-images), you have to install `nvidia-docker`. 
 
