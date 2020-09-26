@@ -78,7 +78,7 @@ At the time this was written, the version should be 19.03.4.
 docker --version
 ```
 
-For more methods of installing `docker` go [here](https://phoenixnap.com/kb/how-to-install-docker-on-ubuntu-18-04) or to the [official docker site](https://docs.docker.com/install/linux/docker-ce/ubuntu/).
+For more methods of installing `docker` like instlling specific versions go to the [official docker site](https://docs.docker.com/engine/install/ubuntu/).
 
 # Using `docker` as a non-root user
 
