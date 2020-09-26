@@ -36,5 +36,10 @@ Verify that the installation was successfull.
 ```
 docker run --gpus=all --rm nvidia/cuda nvidia-smi
 ```
+If an error occurs, check which version of cuda is installed with ```nvidia-smi``` and try: 
+
+```
+docker run --rm --gpus all nvidia/cuda:<version_number>-base nvidia-smi
+```
 
 For more installation methods go [here](https://github.com/NVIDIA/nvidia-docker/wiki/Installation-(version-2.0)).
