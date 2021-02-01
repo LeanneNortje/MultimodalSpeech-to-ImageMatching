@@ -10,11 +10,11 @@ I provide no guarantees with this code, but I do believe the experiments in the 
 
 ## Installing `docker`
 
-To install the latest `docker` for linux (ubuntu), follow these [steps](install_docker.md).
+To install the latest `docker` for linux (ubuntu), follow these [steps](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04).
 
 ## Installing `nvidia-docker`
 
-Firstly make sure to follow the steps in [Installing docker](#Installing-docker). Then follow the steps [here](install_nvidia_docker.md).
+Firstly make sure to follow the steps in [Installing docker](#Installing-docker). Then follow the steps [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker).
 
 NOTE: If you intend on building the GPU-image in [Build docker images](#Build-docker-images), you have to install `nvidia-docker`. 
 
