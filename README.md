@@ -23,13 +23,13 @@ NOTE: If you intend on building the GPU-image in [Build docker images](#Build-do
 To clone the repository run:
 
 ```
-git clone https://github.com/LeanneNortje/multimodal_speech-image_matching.git
+git clone https://github.com/LeanneNortje/MultimodalSpeech-to-ImageMatching.git
 ```
 
 To get into the repository run:
 
 ```
-cd multimodal_speech-image_matching/
+cd MultimodalSpeech-to-ImageMatching/
 ```
 
 ## Build docker images
