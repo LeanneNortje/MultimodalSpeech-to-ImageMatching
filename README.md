@@ -10,7 +10,7 @@ I provide no guarantees with this code, but I do believe the experiments in the 
 
 ## Installing `docker`
 
-To install the latest `docker` for linux (ubuntu), follow these [steps](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04).
+To install the latest `docker` for linux (ubuntu), follow these [steps](https://docs.docker.com/engine/install/ubuntu/).
 
 ## Installing `nvidia-docker`
 
