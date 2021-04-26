@@ -68,10 +68,14 @@ WORKDIR /home
 # ------------------------------------------------------------------------------
 # Install pip and required python packages
 # ------------------------------------------------------------------------------
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends python-pip \
-    && python -m pip install --upgrade setuptools wheel \
-    && python -m pip install \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python-pip \
+        && \
+    python -m pip install --upgrade pip==10.0.1 && \
+    python -m pip install -U setuptools wheel && \
+    python -m pip --no-cache-dir install --upgrade \
+        wheel \
         numpy==1.15.0 \
         pillow==5.3.0 \
         matplotlib==2.2.3 \
